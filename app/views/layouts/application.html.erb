@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tartaruga Pay</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <!-- Tailwind via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- JS via importmap (vai importar "application") -->
+    
+  </head>
+
+  <body class="bg-gray-100 min-h-screen">
+    <!-- Navbar -->
+    <nav class="bg-white shadow mb-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16 items-center">
+          <!-- Logo -->
+          <div class="flex-shrink-0 flex items-center font-bold text-xl">
+            <%= link_to root_path, class: "flex items-center" do %>
+              <%= image_tag "/logo-pixsystem.png", alt: "PixSystem", class: "h-8 w-auto" %>
+            <% end %>
+          </div>
+
+          <!-- Botão sanduíche (mobile) -->
+          <div class="sm:hidden">
+            <button id="menu-toggle" type="button"
+              class="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <svg id="menu-icon" class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none"
+                   viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Links desktop -->
+          <div class="hidden sm:flex sm:items-center sm:space-x-6">
+            <% if user_signed_in? && current_user.admin? %>
+              <%= link_to "Admin", admin_users_path, class: "text-sm font-medium hover:text-blue-600" %>
+            <% elsif user_signed_in? %>
+              <%= link_to "Dashboard", root_path, class: "text-sm font-medium hover:text-blue-600" %>
+              <%= link_to "Pix", pix_transactions_path, class: "text-sm font-medium hover:text-blue-600" %>
+              <%= link_to "Saques", withdrawals_path, class: "text-sm font-medium hover:text-blue-600" %>
+            <% end %>
+            <% if user_signed_in? %>
+              <span class="text-gray-700 text-sm"><%= current_user.email %></span>
+              <%= button_to "Logout", destroy_user_session_path, method: :delete, class: "bg-red-500 hover:bg-red-700 text-white px-3 py-2 rounded text-sm" %>
+            <% else %>
+              <%= link_to "Login", new_user_session_path, class: "bg-blue-500 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm" %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Menu mobile com transição -->
+      <div id="mobile-menu"
+           class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out sm:hidden bg-white border-t border-gray-200">
+        <div class="px-4 py-3 space-y-2">
+          <% if user_signed_in? && current_user.admin? %>
+            <%= link_to "Admin", admin_users_path, class: "block text-gray-700 font-medium hover:text-blue-600" %>
+          <% elsif user_signed_in? %>
+            <%= link_to "Dashboard", root_path, class: "block text-gray-700 font-medium hover:text-blue-600" %>
+            <%= link_to "Pix", pix_transactions_path, class: "block text-gray-700 font-medium hover:text-blue-600" %>
+            <%= link_to "Saques", withdrawals_path, class: "block text-gray-700 font-medium hover:text-blue-600" %>
+          <% end %>
+
+          <% if user_signed_in? %>
+            <span class="block text-gray-600 text-sm"><%= current_user.email %></span>
+            <%= button_to "Logout", destroy_user_session_path, method: :delete, class: "w-full text-center bg-red-500 hover:bg-red-700 text-white px-3 py-2 rounded text-sm" %>
+          <% else %>
+            <%= link_to "Login", new_user_session_path, class: "block text-center bg-blue-500 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm" %>
+          <% end %>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Flash messages -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <% flash.each do |key, message| %>
+        <div class="mb-4 p-4 rounded <%= key == 'notice' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800' %>">
+          <%= message %>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Main content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+      <%= yield %>
+    </main>
+
+    <!-- JS: abre/fecha o menu com animação -->
+    <script>
+      const toggleBtn = document.getElementById('menu-toggle');
+      const menu = document.getElementById('mobile-menu');
+      const icon = document.getElementById('menu-icon');
+
+      toggleBtn.addEventListener('click', () => {
+        if (menu.classList.contains('max-h-0')) {
+          menu.classList.remove('max-h-0');
+          menu.classList.add('max-h-96'); // altura máxima ao abrir
+          icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>`; // X
+        } else {
+          menu.classList.add('max-h-0');
+          menu.classList.remove('max-h-96');
+          icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>`; // ≡
+        }
+      });
+    </script>
+  </body>
+</html>

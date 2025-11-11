@@ -1,0 +1,26 @@
+<div id="<%= dom_id pix_transaction %>" class="w-full sm:w-auto my-5 space-y-5">
+  <div>
+    <strong class="block font-medium mb-1">User:</strong>
+    <%= pix_transaction.user_id %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Amount:</strong>
+    <%= pix_transaction.amount %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Status:</strong>
+    <%= pix_transaction.status %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Transaction type:</strong>
+    <%= pix_transaction.transaction_type %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Pix key:</strong>
+    <%= pix_transaction.pix_key %>
+  </div>
+  <div>
+    <strong class="block font-medium mb-1">Description:</strong>
+    <%= pix_transaction.description %>
+  </div>
+</div>

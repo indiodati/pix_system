@@ -1,0 +1,153 @@
+<%= form_with model: [:admin, @user], local: true do |f| %>
+  <% if @user.errors.any? %>
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+      <p>
+        <strong><%= pluralize(@user.errors.count, "erro") %> impedem o usuário de ser salvo:</strong>
+      </p>
+      <ul class="list-disc list-inside">
+        <% @user.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <%= f.label :name, "Nome", class: "block font-medium mb-1" %>
+      <%= f.text_field :name,
+                       class: "w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" %>
+    </div>
+
+    <div>
+      <%= f.label :email, "E-mail", class: "block font-medium mb-1" %>
+      <%= f.email_field :email,
+                        class: "w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" %>
+    </div>
+
+    <div>
+      <%= f.label :phone, "Telefone", class: "block font-medium mb-1" %>
+      <%= f.text_field :phone,
+                       placeholder: "(31) 99999-9999",
+                       class: "w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400",
+                       id: "user_phone" %>
+    </div>
+
+    <div>
+      <%= f.label :document, "Documento (CPF/CNPJ)", class: "block font-medium mb-1" %>
+      <%= f.text_field :document,
+                       placeholder: "CPF ou CNPJ",
+                       class: "w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400",
+                       id: "user_document" %>
+    </div>
+
+    <div>
+      <%= f.label :pix_fee_percent, "Taxa de PIX (%)", class: "block font-medium mb-1" %>
+      <%= f.text_field :pix_fee_percent,
+                       value: number_with_precision(@user.pix_fee_percent || 0, precision: 2, separator: ","),
+                       id: "pix_fee_percent",
+                       class: "w-full border px-3 py-2 rounded text-right focus:outline-none focus:ring-2 focus:ring-blue-400" %>
+      <p class="text-xs text-gray-500 mt-1">
+        Ex: 5,00 = 5% de taxa sobre o valor de cada PIX.
+      </p>
+    </div>
+
+    <div>
+      <%= f.label :withdraw_limit, "Limite de saque por operação (R$)", class: "block font-medium mb-1" %>
+      <%= f.text_field :withdraw_limit,
+                       value: number_with_precision(@user.withdraw_limit || 0, precision: 2, separator: ","),
+                       id: "withdraw_limit",
+                       class: "w-full border px-3 py-2 rounded text-right focus:outline-none focus:ring-2 focus:ring-blue-400" %>
+      <p class="text-xs text-gray-500 mt-1">
+        Ex: 10.000,00 = saque máximo permitido por operação.
+      </p>
+    </div>
+
+    <div class="flex items-center mt-6">
+      <%= f.check_box :admin, class: "mr-2" %>
+      <%= f.label :admin, "Administrador?", class: "font-medium" %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+    <div>
+      <%= f.label :password, "Senha", class: "block font-medium mb-1" %>
+      <%= f.password_field :password,
+                           autocomplete: "new-password",
+                           class: "w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" %>
+      <% if @user.persisted? %>
+        <p class="text-xs text-gray-500 mt-1">
+          Deixe em branco para não alterar a senha.
+        </p>
+      <% end %>
+    </div>
+
+    <div>
+      <%= f.label :password_confirmation, "Confirmação de Senha", class: "block font-medium mb-1" %>
+      <%= f.password_field :password_confirmation,
+                           autocomplete: "new-password",
+                           class: "w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" %>
+    </div>
+  </div>
+
+  <div class="mt-6">
+    <%= f.submit (@user.new_record? ? "Criar usuário" : "Salvar alterações"),
+                 class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-200" %>
+    <%= link_to "Voltar", admin_users_path,
+                class: "ml-2 text-gray-600 hover:text-gray-800 hover:underline" %>
+  </div>
+<% end %>
+
+<!-- Máscaras usando IMask -->
+<script src="https://unpkg.com/imask"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Telefone: (00) 00000-0000
+    var phoneInput = document.getElementById("user_phone");
+    if (phoneInput) {
+      IMask(phoneInput, { mask: '(00) 00000-0000' });
+    }
+
+    // Documento: CPF ou CNPJ
+    var docInput = document.getElementById("user_document");
+    if (docInput) {
+      IMask(docInput, {
+        mask: [
+          { mask: '000.000.000-00' },
+          { mask: '00.000.000/0000-00' }
+        ]
+      });
+    }
+
+    // Taxa de PIX (%)
+    var feeInput = document.getElementById("pix_fee_percent");
+    if (feeInput) {
+      IMask(feeInput, {
+        mask: Number,
+        scale: 2,
+        signed: false,
+        thousandsSeparator: '.',
+        padFractionalZeros: true,
+        normalizeZeros: true,
+        radix: ',', // separador decimal
+        min: 0,
+        max: 100
+      });
+    }
+
+    // Limite de saque por operação (R$)
+    var withdrawInput = document.getElementById("withdraw_limit");
+    if (withdrawInput) {
+      IMask(withdrawInput, {
+        mask: Number,
+        scale: 2,
+        signed: false,
+        thousandsSeparator: '.',
+        padFractionalZeros: true,
+        normalizeZeros: true,
+        radix: ',', // separador decimal
+        min: 0
+      });
+    }
+  });
+</script>

@@ -1,0 +1,98 @@
+<h1 class="text-3xl font-bold mb-6">Registrar-se</h1> 
+
+<%= form_for(resource, as: resource_name, url: registration_path(resource_name)) do |f| %>
+  <!-- Nome -->
+  <div class="mb-4">
+    <%= f.label :name, "Nome", class: "block font-medium" %>
+    <%= f.text_field :name, autofocus: true, class: "w-full border px-3 py-2 rounded" %>
+  </div>
+
+  <!-- Telefone -->
+  <div class="mb-4">
+    <%= f.label :phone, "Telefone", class: "block font-medium" %>
+    <%= f.text_field :phone, id: "phone", class: "w-full border px-3 py-2 rounded" %>
+  </div>
+
+  <!-- Documento -->
+  <div class="mb-4">
+    <%= f.label :document, "Documento (CPF/CNPJ)", class: "block font-medium" %>
+    <%= f.text_field :document, id: "document", class: "w-full border px-3 py-2 rounded" %>
+  </div>
+
+  <!-- Email -->
+  <div class="mb-4">
+    <%= f.label :email, "Email", class: "block font-medium" %>
+    <%= f.email_field :email, id: "email", class: "w-full border px-3 py-2 rounded" %>
+  </div>
+
+  <!-- Senha -->
+  <div class="mb-4">
+    <%= f.label :password, "Senha", class: "block font-medium" %>
+    <%= f.password_field :password, autocomplete: "new-password", class: "w-full border px-3 py-2 rounded" %>
+  </div>
+
+  <!-- Confirmação de senha -->
+  <div class="mb-4">
+    <%= f.label :password_confirmation, "Confirmação da Senha", class: "block font-medium" %>
+    <%= f.password_field :password_confirmation, class: "w-full border px-3 py-2 rounded" %>
+  </div>
+  
+  <!-- Botão registrar -->
+  <div class="mb-4">
+    <%= f.submit "Registrar-se", class: "bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded" %>
+  </div>
+
+  <!-- Link para login -->
+  <%= link_to "Já possui conta? Login", new_session_path(resource_name), class: "text-blue-500 hover:underline" %>
+<% end %>
+
+<!-- Scripts de máscara -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const phoneInput = document.querySelector("#phone");
+  const docInput = document.querySelector("#document");
+  const emailInput = document.querySelector("#email");
+
+  // Telefone: (99) 99999-9999
+  if (phoneInput) {
+    phoneInput.addEventListener("input", (e) => {
+      let value = e.target.value.replace(/\D/g, "");
+      if (value.length > 11) value = value.slice(0, 11);
+      if (value.length > 10) {
+        e.target.value = value.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+      } else if (value.length > 6) {
+        e.target.value = value.replace(/(\d{2})(\d{4})(\d{0,4})/, "($1) $2-$3");
+      } else if (value.length > 2) {
+        e.target.value = value.replace(/(\d{2})(\d{0,5})/, "($1) $2");
+      } else {
+        e.target.value = value.replace(/(\d*)/, "($1");
+      }
+    });
+  }
+
+  // Documento: CPF (000.000.000-00) ou CNPJ (00.000.000/0000-00)
+  if (docInput) {
+    docInput.addEventListener("input", (e) => {
+      let value = e.target.value.replace(/\D/g, "");
+      if (value.length <= 11) {
+        value = value.replace(/(\d{3})(\d)/, "$1.$2");
+        value = value.replace(/(\d{3})(\d)/, "$1.$2");
+        value = value.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+      } else {
+        value = value.replace(/^(\d{2})(\d)/, "$1.$2");
+        value = value.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+        value = value.replace(/\.(\d{3})(\d)/, ".$1/$2");
+        value = value.replace(/(\d{4})(\d)/, "$1-$2");
+      }
+      e.target.value = value;
+    });
+  }
+
+  // Email: força minúsculo e remove espaços
+  if (emailInput) {
+    emailInput.addEventListener("input", (e) => {
+      e.target.value = e.target.value.toLowerCase().replace(/\s/g, "");
+    });
+  }
+});
+</script>

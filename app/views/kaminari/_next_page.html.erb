@@ -1,0 +1,10 @@
+<%# app/views/kaminari/_next_page.html.erb %>
+<% if current_page.last? %>
+  <span class="px-4 py-2 bg-gray-100 border border-gray-300 text-gray-400 rounded-md cursor-not-allowed">
+    Próxima →
+  </span>
+<% else %>
+  <%= link_to "Próxima →", url,
+              rel: "next",
+              class: "px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition" %>
+<% end %>

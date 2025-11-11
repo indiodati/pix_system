@@ -1,0 +1,88 @@
+<h1 class="text-3xl font-bold mb-6">Solicitar Saque</h1>
+
+<% if flash[:alert].present? %>
+  <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+    <%= flash[:alert] %>
+  </div>
+<% end %>
+
+<div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+  <div class="bg-white shadow rounded p-4">
+    <p class="text-xs text-gray-500 uppercase">Saldo disponível para saque</p>
+    <p class="text-2xl font-bold text-green-600">
+      <%= number_to_currency(@available_balance_reais, unit: "R$") %>
+    </p>
+  </div>
+
+  <div class="bg-white shadow rounded p-4">
+    <p class="text-xs text-gray-500 uppercase">Limite por saque</p>
+    <p class="text-xl font-semibold text-gray-800">
+      <%= number_to_currency(@per_withdraw_limit_reais, unit: "R$") %>
+    </p>
+  </div>
+
+  <div class="bg-white shadow rounded p-4">
+    <p class="text-xs text-gray-500 uppercase">Valor máximo deste saque</p>
+    <p class="text-xl font-semibold text-blue-700">
+      <%= number_to_currency(@max_withdrawable_reais, unit: "R$") %>
+    </p>
+  </div>
+</div>
+
+<%= form_with model: @withdrawal,
+              url: withdrawals_path,
+              local: true do |form| %>
+
+  <% if @withdrawal.errors.any? %>
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+      <p>
+        <strong><%= pluralize(@withdrawal.errors.count, "erro") %> impedem o saque de ser salvo:</strong>
+      </p>
+      <ul class="list-disc list-inside">
+        <% @withdrawal.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-4">
+    <%= form.label :amount, "Valor do saque (R$)", class: "block font-medium mb-1" %>
+    <%= form.number_field :amount,
+                          step: 0.01,
+                          min: 0.01,
+                          max: @max_withdrawable_reais,
+                          placeholder: "Ex: 500.00",
+                          class: "w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" %>
+    <p class="text-xs text-gray-500 mt-1">
+      Você pode sacar no máximo <strong><%= number_to_currency(@max_withdrawable_reais, unit: "R$") %></strong> agora.
+    </p>
+  </div>
+
+  <div class="mb-4">
+    <%= form.label :pix_key, "Chave PIX para receber", class: "block font-medium mb-1" %>
+    <%= form.text_field :pix_key,
+                        placeholder: "CPF, CNPJ, e-mail, telefone ou chave aleatória",
+                        class: "w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" %>
+  </div>
+
+  <div class="mb-4">
+    <%= label_tag :pix_key_type, "Tipo da chave PIX", class: "block font-medium mb-1" %>
+    <%= select_tag "withdrawal[pix_key_type]",
+                   options_for_select([
+                     ["CPF", "CPF"],
+                     ["CNPJ", "CNPJ"],
+                     ["E-mail", "EMAIL"],
+                     ["Telefone", "PHONE"],
+                     ["Chave Aleatória (EVP)", "EVP"]
+                   ], "CPF"),
+                   class: "w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" %>
+  </div>
+
+  <div class="mt-6">
+    <%= form.submit "Solicitar Saque",
+                    class: "bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-200" %>
+    <%= link_to "Voltar", withdrawals_path,
+                class: "ml-2 text-gray-600 hover:text-gray-800 hover:underline" %>
+  </div>
+<% end %>

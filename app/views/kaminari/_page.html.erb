@@ -1,0 +1,9 @@
+<%# app/views/kaminari/_page.html.erb %>
+<% if page.current? %>
+  <span class="px-4 py-2 bg-blue-600 text-white border border-blue-600 rounded-md font-semibold">
+    <%= page.number %>
+  </span>
+<% else %>
+  <%= link_to page.number, url,
+              class: "px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-blue-50 hover:border-blue-400 transition" %>
+<% end %>

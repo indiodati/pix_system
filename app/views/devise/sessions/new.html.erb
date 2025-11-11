@@ -1,0 +1,20 @@
+<h1 class="text-3xl font-bold mb-6">Login</h1>
+
+<%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+  <div class="mb-4">
+    <%= f.label :email, class: "block font-medium" %>
+    <%= f.email_field :email, autofocus: true, class: "w-full border px-3 py-2 rounded" %>
+  </div>
+
+  <div class="mb-4">
+    <%= f.label :password, class: "block font-medium" %>
+    <%= f.password_field :password, autocomplete: "current-password", class: "w-full border px-3 py-2 rounded" %>
+  </div>
+
+  <div class="flex items-center justify-between mb-4">
+    <%= f.submit "Login", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" %>
+    <%= link_to "Esqueci a senha", new_password_path(resource_name), class: "text-blue-500 hover:underline" %>
+  </div>
+
+  <%= link_to "Registrar-se", new_registration_path(resource_name), class: "text-blue-500 hover:underline" %>
+<% end %>

@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  amount: 1
+  status: MyString
+  transaction_type: MyString
+  pix_key: MyString
+  description: MyString
+
+two:
+  user: two
+  amount: 1
+  status: MyString
+  transaction_type: MyString
+  pix_key: MyString
+  description: MyString

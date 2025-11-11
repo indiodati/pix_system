@@ -1,0 +1,61 @@
+pt-BR:
+  activerecord:
+    models:
+      user:
+        one: "Usuário"
+        other: "Usuários"
+      withdrawal:
+        one: "Saque"
+        other: "Saques"
+      pix_transaction:
+        one: "Transação PIX"
+        other: "Transações PIX"
+    attributes:
+      user:
+        email: "E-mail"
+        password: "Senha"
+        password_confirmation: "Confirmação da Senha"
+        name: "Nome"
+      withdrawal:
+        amount: "Valor"
+        pix_key: "Chave PIX"
+        pix_key_type: "Tipo da Chave PIX"
+        status: "Status"
+      pix_transaction:
+        amount: "Valor"
+        transaction_type: "Tipo da Transação"
+        status: "Status"
+        created_at: "Data"
+    errors:
+      template:
+        header:
+          one:   "1 erro impediu que este %{model} fosse salvo"
+          other: "%{count} erros impediram que este %{model} fosse salvo"
+        body:    "Houveram problemas com os seguintes campos:"
+      messages:
+        accepted: "deve ser aceito"
+        blank: "não pode ficar em branco"
+        present: "deve estar ausente"
+        confirmation: "não confere com a confirmação"
+        empty: "não pode ficar vazio"
+        equal_to: "deve ser igual a %{count}"
+        even: "deve ser um número par"
+        exclusion: "está reservado(a)"
+        greater_than: "deve ser maior que %{count}"
+        greater_than_or_equal_to: "deve ser maior ou igual a %{count}"
+        inclusion: "não está incluído(a) na lista"
+        invalid: "é inválido(a)"
+        less_than: "deve ser menor que %{count}"
+        less_than_or_equal_to: "deve ser menor ou igual a %{count}"
+        model_invalid: "validação falhou: %{errors}"
+        not_a_number: "não é um número"
+        not_an_integer: "deve ser um número inteiro"
+        required: "é obrigatório(a)"
+        taken: "já está em uso"
+        too_long: "é muito longo(a) (máximo %{count} caracteres)"
+        too_short: "é muito curto(a) (mínimo %{count} caracteres)"
+        wrong_length: "não possui o tamanho correto (deve ter %{count} caracteres)"
+        record_invalid: "Validação falhou: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "Não é possível excluir este %{record} porque existe um(a) %{dependent} dependente"
+          has_many: "Não é possível excluir este %{record} porque existem %{count} %{dependent} dependentes"

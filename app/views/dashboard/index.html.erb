@@ -1,0 +1,154 @@
+<div class="container mx-auto p-6">
+  <h1 class="text-3xl font-bold mb-6">Dashboard</h1>
+
+  <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="bg-white shadow rounded p-6 relative">
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-xl font-semibold">Total Líquido de PIX</h2>
+        <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Resumo</span>
+      </div>
+      <p class="text-sm text-gray-500 mb-4">
+        Considerando apenas transações PIX Pagas
+      </p>
+
+      <div class="text-center my-6">
+        <p class="text-gray-500 text-sm mb-1">Valor líquido após taxas</p>
+        <p class="text-4xl font-extrabold text-green-600">
+          <%= number_to_currency(@total_pix_net, unit: "R$") %>
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 mt-6">
+        <div class="bg-gray-50 rounded p-3 text-center">
+          <p class="text-xs text-gray-500 uppercase tracking-wide">Total Bruto</p>
+          <p class="text-4xl font-extrabold text-green-600">
+            <%= number_to_currency(@balance_reais, unit: "R$") %>
+          </p>
+        </div>
+
+       
+      </div>
+
+      <!-- Botão Fazer PIX -->
+      <div class="mt-8 text-center">
+        <%= link_to "Fazer PIX",
+                    new_pix_transaction_path,
+                    class: "inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow transition duration-200" %>
+      </div>
+    </div>
+
+
+    <!-- Últimas Transações PIX -->
+    <div class="bg-white shadow rounded p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xl font-semibold">Últimas Transações PIX</h2>
+        
+        <%= link_to pix_transactions_path, class: "text-xs font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1" do %>
+            Ver todas
+            <span class="text-[10px]">➜</span>
+        <% end %>
+      </div>
+
+      <% if @pix_transactions.any? %>
+        <ul class="space-y-2">
+          <% @pix_transactions.each do |t| %>
+            <% status = t.status.to_s.upcase %>
+            <% translated_status =
+              case status
+              when "PENDING"
+                "Pendente"
+              when "PAID"
+                "Pago"
+              when "FAILED"
+                "Falhou"
+              else
+                status.capitalize
+              end
+            %>
+            <% badge_classes =
+              case status
+              when "PENDING"
+                "bg-yellow-100 text-yellow-800"
+              when "PAID"
+                "bg-green-100 text-green-800"
+              when "FAILED"
+                "bg-red-100 text-red-800"
+              else
+                "bg-gray-100 text-gray-700"
+              end
+            %>
+
+            <li class="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-2 hover:bg-gray-50 transition">
+              <div>
+                <div class="flex items-center gap-2">
+                 
+                  <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium <%= badge_classes %>">
+                    <%= translated_status %>
+                  </span>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">
+                  <%= l(t.created_at, format: :short) %>
+                </p>
+              </div>
+
+              <div class="text-right">
+                <p class="text-sm font-semibold">
+                  <%= number_to_currency(t.amount.to_i / 100.0, unit: "R$") %>
+                </p>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-gray-500 mt-2">Nenhuma transação PIX encontrada.</p>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Card Últimos Saques -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 md:p-5">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-sm font-semibold text-slate-800">
+      Últimos Saques
+    </h2>
+
+    <%= link_to withdrawals_path, class: "text-xs font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1" do %>
+      Ver todos
+      <span class="text-[10px]">➜</span>
+    <% end %>
+  </div>
+
+  <% if @withdrawals.present? %>
+    <div class="space-y-2">
+      <% @withdrawals.each do |withdrawal| %>
+        <div class="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors">
+          <div class="flex flex-col">
+            <div class="flex items-center gap-2 text-xs text-slate-500">
+             
+              <span><%= l(withdrawal.created_at, format: "%d %b %H:%M") %></span>
+            </div>
+
+            <div class="mt-1 flex items-center gap-2">
+              <span class="text-sm text-slate-800">
+                Saque via PIX
+              </span>
+
+              <!-- badge de status -->
+              <span class="<%= withdrawal_status_badge_classes(withdrawal.status) %>">
+                <%= withdrawal.status.capitalize %>
+              </span>
+            </div>
+          </div>
+
+          <div class="text-sm font-semibold text-slate-900">
+            <%= number_to_currency(withdrawal.amount.to_f / 100, unit: "R$", separator: ",", delimiter: ".") %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="text-xs text-slate-400">Nenhum saque ainda.</p>
+  <% end %>
+</div>
+
+</div>

@@ -1,0 +1,89 @@
+<h1 class="text-3xl font-bold mb-6">Minhas Transações PIX</h1>
+
+<% if notice.present? %>
+  <p class="py-2 px-3 bg-green-50 mb-5 text-green-600 font-medium rounded-md inline-block" id="notice">
+    <%= notice %>
+  </p>
+<% end %>
+
+<div class="mb-4 flex justify-between items-center">
+  <p class="text-gray-600 text-sm">
+    Acompanhe aqui o histórico de transações PIX realizadas.
+  </p>
+</div>
+
+<div class="bg-white shadow rounded">
+  <% if @pix_transactions.any? %>
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+        </tr>
+      </thead>
+
+      <tbody class="bg-white divide-y divide-gray-200">
+        <% @pix_transactions.each do |t| %>
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-2 text-sm text-gray-700"><%= t.id %></td>
+            <td class="px-4 py-2 text-sm text-gray-700">
+              <%= number_to_currency(t.amount.to_i / 100.0, unit: "R$") %>
+            </td>
+            <td class="px-4 py-2 text-sm text-gray-700">
+              <% tipo = t.transaction_type.to_s.upcase %>
+              <% case tipo %>
+              <% when "CREDIT" %>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Crédito
+                </span>
+              <% when "DEBIT" %>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  Débito
+                </span>
+              <% else %>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                  <%= tipo.humanize %>
+                </span>
+              <% end %>
+            </td>
+            <td class="px-4 py-2 text-sm">
+              <% case t.status.to_s.upcase %>
+              <% when "PENDING" %>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  Pendente
+                </span>
+              <% when "PAID", "COMPLETED", "SUCCESS" %>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Pago
+                </span>
+              <% when "FAILED", "CANCELED" %>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  Falhou
+                </span>
+              <% else %>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                  <%= t.status.to_s.humanize %>
+                </span>
+              <% end %>
+            </td>
+            <td class="px-4 py-2 text-sm text-gray-700">
+              <%= l(t.created_at, format: "%d/%m/%Y %H:%M") %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <!-- Paginação bonitinha -->
+    <div class="px-4 py-3 border-t border-gray-200">
+      <div class="flex justify-center">
+        <%= paginate @pix_transactions %>
+      </div>
+    </div>
+  <% else %>
+    <p class="text-center text-gray-500 py-4">Nenhuma transação PIX encontrada.</p>
+  <% end %>
+</div>
