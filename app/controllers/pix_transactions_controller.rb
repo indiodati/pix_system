@@ -45,14 +45,20 @@ class PixTransactionsController < ApplicationController
           amount:      amount_cents,
           quantity:    1,
           tangible:    true,
-          externalRef: external_ref # 👈 bate com o que você salvou em external_id
+          externalRef: external_ref 
         }
       ]
     )
 
     if response["status"] == true
+
+       
+
       data     = response["data"] || {}
       pix_data = data["pix"]      || {}
+
+
+      Rails.logger.warn("[WITETEC WEBHOOK] RESPOSTA DA CHAMADA PIX: #{data}")
 
       # 🔹 Valor bruto vindo da Witetec (mais confiável do que o do formulário)
       gateway_amount = data["amount"].to_i

@@ -30,7 +30,7 @@
       <tbody class="bg-white divide-y divide-gray-200">
         <% @withdrawals.each do |w| %>
           <tr class="hover:bg-gray-50">
-            <td class="px-4 py-2 text-sm text-gray-700"><%= w.id %></td>
+            <td class="px-4 py-2 text-sm text-gray-700"><%= w.witetec_id %></td>
             <td class="px-4 py-2 text-sm text-gray-700">
               <%= number_to_currency(w.amount.to_i / 100.0, unit: "R$") %>
             </td>

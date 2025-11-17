@@ -28,7 +28,7 @@
       <tbody class="bg-white divide-y divide-gray-200">
         <% @pix_transactions.each do |t| %>
           <tr class="hover:bg-gray-50">
-            <td class="px-4 py-2 text-sm text-gray-700"><%= t.id %></td>
+            <td class="px-4 py-2 text-sm text-gray-700"><%= t.witetec_id %></td>
             <td class="px-4 py-2 text-sm text-gray-700">
               <%= number_to_currency(t.amount.to_i / 100.0, unit: "R$") %>
             </td>
@@ -86,4 +86,12 @@
   <% else %>
     <p class="text-center text-gray-500 py-4">Nenhuma transação PIX encontrada.</p>
   <% end %>
+
+
+
 </div>
+<div class="mt-8 text-left">
+        <%= link_to "Fazer PIX",
+                    new_pix_transaction_path,
+                    class: "inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow transition duration-200" %>
+      </div>

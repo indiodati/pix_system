@@ -43,10 +43,10 @@ class WitetecWebhooksController < ApplicationController
 
     # ----- LOG DE GATEWAY: Payment -----
     payment = Payment.find_or_initialize_by(witetec_id: witetec_id)
-    payment.external_ref    ||= external_ref
-    payment.gateway_status    = status.downcase        # "paid", "pending", "failed"
-    payment.payment_method    = method
-    payment.paid_at         ||= Time.current if status == "PAID"
+    payment.external_ref     ||= external_ref
+    payment.gateway_status     = status.downcase        # "paid", "pending", "failed"
+    payment.payment_method     = method
+    payment.paid_at          ||= Time.current if status == "PAID"
     payment.save!
 
     # ----- NEGÓCIO: PixTransaction -----
@@ -62,13 +62,38 @@ class WitetecWebhooksController < ApplicationController
     PixTransaction.transaction do
       pix_tx.transaction_type = method if pix_tx.respond_to?(:transaction_type=)
       pix_tx.status           = status
+
+      # 👇 Se mudou (ou estiver) para PAID, garantimos o cálculo da taxa
+      if status == "PAID"
+        fee_cents = pix_tx.fee_amount.to_i
+
+        # Só recalcula se ainda não tiver taxa definida
+        if fee_cents.zero?
+          user         = pix_tx.user
+          amount_cents = pix_tx.amount.to_i
+          fee_percent  = user.pix_fee_percent.to_f
+
+          fee_cents = ((amount_cents * fee_percent) / 100.0).round
+          pix_tx.fee_amount = fee_cents
+
+          Rails.logger.info(
+            "[WITETEC WEBHOOK] Calculada taxa para pix_tx=#{pix_tx.id} " \
+            "amount=#{amount_cents} fee_percent=#{fee_percent} fee_cents=#{fee_cents}"
+          )
+        end
+      end
+
       pix_tx.save!
 
       # Crédito só quando muda para PAID e ainda não era pago
       if status == "PAID" && prev_status != "PAID"
         valor = pix_tx.net_amount_cents # <= valor já com taxa descontada
         pix_tx.user.credit!(valor)
-        Rails.logger.info("[WITETEC WEBHOOK] Crédito PIX: user_id=#{pix_tx.user_id} +#{valor} cents")
+
+        Rails.logger.info(
+          "[WITETEC WEBHOOK] Crédito PIX: user_id=#{pix_tx.user_id} " \
+          "+#{valor} cents (amount=#{pix_tx.amount} fee=#{pix_tx.fee_amount})"
+        )
       end
 
       # (Opcional) se quiser estornar quando vier FAILED após já ter sido PAID:

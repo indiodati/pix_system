@@ -7,6 +7,14 @@ module Admin
 
     def index
       @users = User.order(:id)
+      @pix_transactions = current_user.pix_transactions
+                                      .where("LOWER(transaction_type) = ?", "pix")
+                                      .order(created_at: :desc)
+                                      .limit(5)
+
+      @withdrawals = current_user.withdrawals.order(created_at: :desc).limit(5)
+
+      @balance_reais = current_user.balance_reais
     end
 
     # 👇 ESSA ACTION PRECISA EXISTIR ASSIM
