@@ -1,19 +1,22 @@
+# app/controllers/santsbank_webhooks_controller.rb
 class SantsbankWebhooksController < ApplicationController
+  # Webhook vem de fora, então desligamos CSRF
   protect_from_forgery with: :null_session
 
+  # 🔐 Proteções extras
+  before_action :verify_source_ip!
+  before_action :parse_payload!
+  before_action :verify_token!
+
+  # Lista de IPs permitidos (se vazio, não bloqueia por IP)
+  # Exemplo:
+  #   SANTS_WEBHOOK_ALLOWED_IPS="18.231.12.34,54.232.98.76"
+  ALLOWED_IPS = (ENV["SANTS_WEBHOOK_ALLOWED_IPS"] || "").split(",").map(&:strip).freeze
+
   def receive
-    payload_raw = request.raw_post.presence || "{}"
-    payload     = JSON.parse(payload_raw) rescue {}
+    payload = @payload # já parseado no before_action
 
     Rails.logger.info "[SANTS WEBHOOK] payload=#{payload.inspect}"
-
-    incoming_token = payload["token"].to_s
-    expected_token = ENV["SANTS_WEBHOOK_TOKEN"].to_s
-
-    if expected_token.present? && incoming_token != expected_token
-      Rails.logger.warn "[SANTS WEBHOOK] token inválido: #{incoming_token}"
-      return render json: { ok: false, error: "invalid token" }, status: :unauthorized
-    end
 
     evento = payload["evento"].to_s
 
@@ -34,12 +37,68 @@ class SantsbankWebhooksController < ApplicationController
 
   private
 
+  # ==========================================
+  # 1) Restrição de IP
+  # ==========================================
+  def verify_source_ip!
+    # Se não tiver nenhum IP configurado, não bloqueia (útil pra dev)
+    return if ALLOWED_IPS.blank?
+
+    ip = request.remote_ip
+
+    unless ALLOWED_IPS.include?(ip)
+      Rails.logger.warn "[SANTS WEBHOOK] IP não permitido: #{ip} (allowed=#{ALLOWED_IPS.join(',')})"
+      head :forbidden
+    end
+  end
+
+  # ==========================================
+  # 2) Parse do JSON uma vez só
+  # ==========================================
+  def parse_payload!
+    payload_raw = request.raw_post.presence || "{}"
+    @payload    = JSON.parse(payload_raw) rescue {}
+
+    if @payload.blank? || !@payload.is_a?(Hash)
+      Rails.logger.warn "[SANTS WEBHOOK] payload inválido ou vazio"
+    end
+  end
+
+  # ==========================================
+  # 3) Validação do token (com secure_compare)
+  # ==========================================
+  def verify_token!
+    expected_token = ENV["SANTS_WEBHOOK_TOKEN"].to_s
+
+    # Se não tiver token configurado em env, não bloqueia (mas loga)
+    if expected_token.blank?
+      Rails.logger.warn "[SANTS WEBHOOK] SANTS_WEBHOOK_TOKEN não configurado. Token não será validado!"
+      return
+    end
+
+    incoming_token = @payload["token"].to_s
+
+    if incoming_token.blank?
+      Rails.logger.warn "[SANTS WEBHOOK] token ausente no payload"
+      return render json: { ok: false, error: "missing token" }, status: :unauthorized
+    end
+
+    # Comparação segura pra evitar timing attack
+    unless ActiveSupport::SecurityUtils.secure_compare(incoming_token, expected_token)
+      Rails.logger.warn "[SANTS WEBHOOK] token inválido: #{incoming_token}"
+      return render json: { ok: false, error: "invalid token" }, status: :unauthorized
+    end
+  end
+
+  # ================================
+  # PIX OUT (saque via Sants)
+  # ================================
   def handle_pix_out(payload)
-    status_raw        = payload["status"].to_s
+    status_raw        = payload["status"].to_s        # "Em processamento", "Sucesso", "Erro", "Falha"
     codigo_transacao  = payload["codigoTransacao"].to_s
     id_envio          = payload["idEnvio"].to_s
     end_to_end        = payload["endToEndId"].to_s
-    valor             = payload["valor"]
+    valor             = payload["valor"]              # normalmente negativo (-1 * valor)
     erro              = payload["erro"]
 
     Rails.logger.info(
@@ -75,6 +134,7 @@ class SantsbankWebhooksController < ApplicationController
         updated_at: Time.current
       )
 
+      # COMPLETED pela primeira vez → debita saldo
       if normalized_status == "COMPLETED" && prev_status != "COMPLETED"
         valor_debito = withdrawal.amount.to_i
 
@@ -92,6 +152,7 @@ class SantsbankWebhooksController < ApplicationController
         end
       end
 
+      # FAILED depois de COMPLETED → recredita
       if normalized_status == "FAILED" && prev_status == "COMPLETED"
         valor_estorno = withdrawal.amount.to_i
 
@@ -110,13 +171,22 @@ class SantsbankWebhooksController < ApplicationController
       end
     end
 
-    Rails.logger.warn "[SANTS WEBHOOK] PixOut erro=#{erro.inspect} para codigoTransacao=#{codigo_transacao}" if erro.present?
+    if erro.present?
+      Rails.logger.warn "[SANTS WEBHOOK] PixOut erro=#{erro.inspect} para codigoTransacao=#{codigo_transacao}"
+    end
   rescue => e
     Rails.logger.error "[SANTS WEBHOOK] ERRO handle_pix_out: #{e.class} - #{e.message}"
   end
 
+  # ================================
+  # PIX IN
+  # ================================
   def handle_pix_in(payload)
-    Rails.logger.info "[SANTS WEBHOOK] PixIn recebido (ainda não tratado) payload=#{payload.inspect}"
+    Rails.logger.info "[SANTS WEBHOOK] PixIn recebido payload=#{payload.inspect}"
+    # Aqui depois você pode:
+    # - localizar conta do recebedor
+    # - creditar saldo
+    # - registrar PixTransaction etc.
   rescue => e
     Rails.logger.error "[SANTS WEBHOOK] ERRO handle_pix_in: #{e.class} - #{e.message}"
   end

@@ -22,23 +22,32 @@ services:
     restart: always
     depends_on:
       - db
+
+    # 🔥 AQUI: carrega as variáveis de ambiente do arquivo .env
+    env_file:
+      - .env
+
     environment:
       RAILS_ENV: production
       RAILS_SERVE_STATIC_FILES: "true"
       RAILS_LOG_TO_STDOUT: "true"
+
       POSTGRES_HOST: db
       POSTGRES_USER: "marlloncastro"
       POSTGRES_PASSWORD: "Henmar22#@"
       POSTGRES_DB: "pix_system_production"
+
       SECRET_KEY_BASE: "SUA_SECRET_KEY_BASE_AQUI"
-      # Se usar credentials, descomenta e coloca a chave:
       # RAILS_MASTER_KEY: "SUA_MASTER_KEY_AQUI"
+
     volumes:
-      # mapeia a pasta do projeto no host para dentro do container
       - .:/app
+
     ports:
       - "3000:3000"
+
     command: bash -c "bundle check || bundle install && bundle exec puma -C config/puma.rb"
+
     networks:
       - app-network
 

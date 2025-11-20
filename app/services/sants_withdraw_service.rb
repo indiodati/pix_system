@@ -1,3 +1,4 @@
+# app/services/sants_withdraw_service.rb
 require "net/http"
 require "json"
 require "uri"
@@ -10,6 +11,12 @@ class SantsWithdrawService
     @base_url = BASE_URL
   end
 
+  # -----------------------------------------------------------
+  # Faz a transferência PIX (saque) via Sants
+  # amount_cents: valor em centavos (positivo)
+  # pix_key: chave PIX destino (cpf/cnpj/email/telefone/aleatória)
+  # pix_key_type: tipo da chave (CPF, CNPJ, PHONE, EMAIL, EVP)
+  # -----------------------------------------------------------
   def withdraw(amount_cents:, pix_key:, pix_key_type: nil)
     raw_pix_key = pix_key.to_s
 

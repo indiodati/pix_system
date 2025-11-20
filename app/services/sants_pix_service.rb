@@ -17,6 +17,9 @@ class SantsPixService
     @base_url = BASE_URL
   end
 
+  # =========================================
+  # Autenticação
+  # =========================================
   def authenticate
     uri = URI.join(@base_url, AUTH_PATH)
 
@@ -57,6 +60,14 @@ class SantsPixService
     }
   end
 
+  # =========================================
+  # Criar transação PIX (QRCode)
+  # =========================================
+  # attrs:
+  #   :amount             (em centavos)
+  #   :expiration_seconds
+  #   :info
+  # =========================================
   def create_transaction(attrs)
     amount_cents       = attrs[:amount].to_i
     expiration_seconds = (attrs[:expiration_seconds] || DEFAULT_EXP).to_i
@@ -97,20 +108,25 @@ class SantsPixService
     body = JSON.parse(response.body) rescue {}
 
     if response.code.to_i == 200 && body["sucesso"] == true
-      tx_id  = body["txId"]
+      # Sants pode mandar "txId" ou "txid" dependendo do endpoint
+      tx_id  = body["txId"] || body["txid"]
       qrcode = body["qrcode"] || {}
+
+      unless tx_id.present?
+        Rails.logger.warn "[SantsPixService] tx_id não encontrado no body: #{body.inspect}"
+      end
 
       {
         "status"  => true,
         "message" => body["mensagem"],
         "data"    => {
-          "id"        => tx_id,
-          "amount"    => amount_cents,
+          "id"        => tx_id,           # 👈 é isso que vira gateway_id na PixTransaction
+          "amount"    => amount_cents,    # interno sempre em centavos
           "feeAmount" => 0,
           "status"    => "PENDING",
           "pix"       => {
-            "qrcode"    => qrcode["imagem"],
-            "copyPaste" => qrcode["emv"]
+            "qrcode"    => qrcode["imagem"], # base64 da imagem
+            "copyPaste" => qrcode["emv"]     # EMV copia e cola
           }
         }
       }

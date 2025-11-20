@@ -31,14 +31,16 @@ class PixTransactionsController < ApplicationController
     # ------------------------------------------------------------
     # Gateway vem do USER agora
     # ------------------------------------------------------------
-    gateway = if current_user.respond_to?(:effective_pix_gateway)
-                current_user.effective_pix_gateway
-              else
-                "witetec"
-              end
+    gateway =
+      if current_user.respond_to?(:effective_pix_gateway)
+        current_user.effective_pix_gateway
+      else
+        current_user.pix_gateway rescue "witetec"
+      end
 
-    # segurança extra:
     gateway = "witetec" unless %w[witetec santsbank].include?(gateway)
+
+    Rails.logger.info "[PIX CREATE] user_id=#{current_user.id} gateway=#{gateway}"
 
     # ------------------------------------------------------------
     # Instancia PixTransaction já com gateway
