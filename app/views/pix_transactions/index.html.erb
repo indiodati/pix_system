@@ -17,23 +17,63 @@
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
-          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
-          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            ID (Gateway)
+          </th>
+
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Provedor
+          </th>
+
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Valor
+          </th>
+
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Tipo
+          </th>
+
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Status
+          </th>
+
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Data
+          </th>
         </tr>
       </thead>
 
       <tbody class="bg-white divide-y divide-gray-200">
         <% @pix_transactions.each do |t| %>
           <tr class="hover:bg-gray-50">
-            <td class="px-4 py-2 text-sm text-gray-700"><%= t.witetec_id %></td>
+
+            <!-- gateway_id -->
+            <td class="px-4 py-2 text-sm text-gray-700 font-mono">
+              <%= t.gateway_id %>
+            </td>
+
+            <!-- provider -->
+            <td class="px-4 py-2 text-sm">
+              <% if t.gateway == "witetec" %>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Witetec
+                </span>
+              <% else %>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  Sants Bank
+                </span>
+              <% end %>
+            </td>
+
+            <!-- valor -->
             <td class="px-4 py-2 text-sm text-gray-700">
               <%= number_to_currency(t.amount.to_i / 100.0, unit: "R$") %>
             </td>
+
+            <!-- tipo -->
             <td class="px-4 py-2 text-sm text-gray-700">
               <% tipo = t.transaction_type.to_s.upcase %>
+
               <% case tipo %>
               <% when "CREDIT" %>
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -49,6 +89,8 @@
                 </span>
               <% end %>
             </td>
+
+            <!-- status -->
             <td class="px-4 py-2 text-sm">
               <% case t.status.to_s.upcase %>
               <% when "PENDING" %>
@@ -69,29 +111,31 @@
                 </span>
               <% end %>
             </td>
+
+            <!-- data -->
             <td class="px-4 py-2 text-sm text-gray-700">
               <%= l(t.created_at, format: "%d/%m/%Y %H:%M") %>
             </td>
+
           </tr>
         <% end %>
       </tbody>
     </table>
 
-    <!-- Paginação bonitinha -->
+    <!-- Paginação -->
     <div class="px-4 py-3 border-t border-gray-200">
       <div class="flex justify-center">
         <%= paginate @pix_transactions %>
       </div>
     </div>
+
   <% else %>
     <p class="text-center text-gray-500 py-4">Nenhuma transação PIX encontrada.</p>
   <% end %>
-
-
-
 </div>
+
 <div class="mt-8 text-left">
-        <%= link_to "Fazer PIX",
-                    new_pix_transaction_path,
-                    class: "inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow transition duration-200" %>
-      </div>
+  <%= link_to "Fazer PIX",
+              new_pix_transaction_path,
+              class: "inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow transition duration-200" %>
+</div>

@@ -4,12 +4,12 @@ Rails.application.routes.draw do
   root "dashboard#index"
 
   resources :pix_transactions, only: [:index, :new, :create]
-  resources :withdrawals, only: [:index, :new, :create]
+  resources :withdrawals,      only: [:index, :new, :create]
 
   namespace :admin do
-    resources :users   # sem `only`, gera todas: index, show, new, create, edit, update, destroy
+    resources :users
   end
 
-  post '/webhooks/witetec', to: 'witetec_webhooks#receive'
-
+  post "/webhooks/witetec", to: "witetec_webhooks#receive"
+  post "/webhook/sants",    to: "santsbank_webhooks#receive"
 end

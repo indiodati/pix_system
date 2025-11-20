@@ -1,42 +1,6 @@
 <h1 class="text-3xl font-bold mb-6">Criar PIX</h1>
 
-<%= form_with model: @pix_transaction,
-              url: pix_transactions_path,
-              local: true do |f| %>
-
-  <% if @pix_transaction.errors.any? %>
-    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-      <p>
-        <strong><%= pluralize(@pix_transaction.errors.count, "erro") %> impedem o PIX de ser salvo:</strong>
-      </p>
-      <ul class="list-disc list-inside">
-        <% @pix_transaction.errors.full_messages.each do |msg| %>
-          <li><%= msg %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
-
-  <div class="mb-4">
-    <%= f.label :description, "Descrição da Transação", class: "block font-medium mb-1" %>
-    <%= f.text_field :description,
-                     placeholder: "Ex: Pagamento de Produto",
-                     class: "w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" %>
-  </div>
-
-  <div class="mb-4">
-    <%= f.label :amount_reais, "Valor (R$)", class: "block font-medium mb-1" %>
-    <%= f.text_field :amount_reais,
-                     value: @pix_transaction.amount_reais,
-                     placeholder: "Ex: 10,50",
-                     class: "w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 money-input" %>
-  </div>
-
-  <div class="mb-4">
-    <%= f.submit "Criar PIX",
-                 class: "bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-200" %>
-  </div>
-<% end %>
+<%= render "form", pix_transaction: @pix_transaction %>
 
 <!-- Máscara de dinheiro em JS -->
 <script>

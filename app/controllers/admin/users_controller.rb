@@ -85,6 +85,8 @@ module Admin
         :document,
         :admin,
         :pix_fee_percent,
+        :withdraw_limit,
+        :pix_gateway,          # 👈 NOVO: gateway de PIX
         :password,
         :password_confirmation
       )

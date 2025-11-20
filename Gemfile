@@ -17,6 +17,7 @@ gem "cssbundling-rails"
 gem "puma", ">= 5.0"
 
 gem 'kaminari', '~> 1.2'
+gem 'dotenv-rails', groups: [:development, :test]
 
 
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]

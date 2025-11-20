@@ -10,12 +10,12 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_11_015708) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_17_223239) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
   create_table "cash_outs", force: :cascade do |t|
-    t.string "witetec_id"
+    t.string "gateway_id"
     t.string "external_ref"
     t.string "gateway_status"
     t.string "method"
@@ -25,7 +25,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_11_015708) do
   end
 
   create_table "payments", force: :cascade do |t|
-    t.string "witetec_id"
+    t.string "gateway_id"
     t.string "external_ref"
     t.string "gateway_status"
     t.string "payment_method"
@@ -45,10 +45,12 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_11_015708) do
     t.datetime "updated_at", null: false
     t.string "external_id"
     t.integer "fee_amount", default: 0, null: false
-    t.string "witetec_id"
+    t.string "gateway_id"
+    t.integer "gateway", default: 0, null: false
     t.index ["external_id"], name: "index_pix_transactions_on_external_id", unique: true
+    t.index ["gateway"], name: "index_pix_transactions_on_gateway"
+    t.index ["gateway_id"], name: "index_pix_transactions_on_gateway_id"
     t.index ["user_id"], name: "index_pix_transactions_on_user_id"
-    t.index ["witetec_id"], name: "index_pix_transactions_on_witetec_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -66,6 +68,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_11_015708) do
     t.decimal "pix_fee_percent", precision: 5, scale: 2, default: "0.0", null: false
     t.decimal "withdraw_limit", precision: 10, scale: 2, default: "10000.0", null: false
     t.integer "balance_cents", default: 0, null: false
+    t.string "pix_gateway", default: "witetec", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
@@ -77,9 +80,9 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_11_015708) do
     t.string "pix_key"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "witetec_id"
+    t.string "gateway_id"
+    t.index ["gateway_id"], name: "index_withdrawals_on_gateway_id"
     t.index ["user_id"], name: "index_withdrawals_on_user_id"
-    t.index ["witetec_id"], name: "index_withdrawals_on_witetec_id"
   end
 
   add_foreign_key "pix_transactions", "users"

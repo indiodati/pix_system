@@ -1,11 +1,10 @@
-# app/services/pix_service.rb
-require 'net/http'
-require 'json'
-require 'uri'
+require "net/http"
+require "json"
+require "uri"
 
 class PixService
-  BASE_URL = ENV['PIX_API_BASE_URL'] || 'https://api.witetec.net'
-  API_KEY  = ENV['PIX_API_KEY']      || 'sk_3332d7fc778c08fb57c68fa531a43851884d5094f15b6106'
+  BASE_URL = ENV["PIX_API_BASE_URL"] || "https://api.witetec.net"
+  API_KEY  = ENV["PIX_API_KEY"]      || "sk_3332d7fc778c08fb57c68fa531a43851884d5094f15b6106"
 
   def initialize
     @base_url = BASE_URL
@@ -74,11 +73,11 @@ class PixService
     Rails.logger.info "[PixService] Request POST #{uri} - body: #{payload.inspect}"
 
     request = Net::HTTP::Post.new(uri)
-    request['Content-Type'] = 'application/json'
-    request['x-api-key']    = @api_key
+    request["Content-Type"] = "application/json"
+    request["x-api-key"]    = @api_key
     request.body            = payload.to_json
 
-    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
+    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == "https") do |http|
       http.request(request)
     end
 
@@ -99,9 +98,9 @@ class PixService
     uri = URI("#{@base_url}/transactions")
 
     request = Net::HTTP::Get.new(uri)
-    request['x-api-key'] = @api_key
+    request["x-api-key"] = @api_key
 
-    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
+    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == "https") do |http|
       http.request(request)
     end
 
@@ -127,11 +126,11 @@ class PixService
     uri = URI("#{@base_url}/seller-wallet/balance")
 
     request = Net::HTTP::Get.new(uri)
-    request['x-api-key'] = @api_key
+    request["x-api-key"] = @api_key
 
     Rails.logger.info "[PixService] Request GET #{uri}"
 
-    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
+    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == "https") do |http|
       http.request(request)
     end
 

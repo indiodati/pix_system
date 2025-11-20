@@ -5,7 +5,6 @@ class Withdrawal < ApplicationRecord
   validates :amount, presence: true,
                      numericality: { only_integer: true, greater_than: 0 }
 
-  # ✅ Essas regras SÓ fazem sentido na criação do saque.
   validate :user_must_have_enough_balance,    on: :create
   validate :amount_cannot_exceed_user_limit, on: :create
 
@@ -31,7 +30,6 @@ class Withdrawal < ApplicationRecord
   def amount_cannot_exceed_user_limit
     return if user.blank? || amount.blank?
 
-    # ⚠️ Se não tiver limite configurado ou for <= 0, não bloqueia
     return if user.withdraw_limit.blank? || user.withdraw_limit.to_f <= 0
 
     limit_cents = (user.withdraw_limit.to_f * 100).round

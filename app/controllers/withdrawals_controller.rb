@@ -5,9 +5,8 @@ class WithdrawalsController < ApplicationController
     @withdrawals = current_user.withdrawals
                                .order(created_at: :desc)
                                .page(params[:page])
-                               .per(10) # quantidade por página, ajuste se quiser
+                               .per(10)
   end
-
 
   def new
     @withdrawal = current_user.withdrawals.new
@@ -16,9 +15,9 @@ class WithdrawalsController < ApplicationController
 
   def create
     raw_amount   = params[:withdrawal][:amount].to_s
-                     .gsub(/[^\d.,]/, '')
-                     .gsub('.', '')
-                     .tr(',', '.')
+                     .gsub(/[^\d.,]/, "")
+                     .gsub(".", "")
+                     .tr(",", ".")
     amount_cents = (raw_amount.to_f * 100).round
 
     @withdrawal = current_user.withdrawals.new(
@@ -40,15 +39,14 @@ class WithdrawalsController < ApplicationController
         data = response["data"] || {}
 
         @withdrawal.status     = data["status"].presence || "PENDING"
-        @withdrawal.witetec_id = data["id"]              # 👈 ID da Witetec
+        @withdrawal.gateway_id = data["id"]              # 👈 ID no gateway (Witetec)
 
         @withdrawal.save!
         redirect_to withdrawals_path, notice: "Saque solicitado com sucesso!"
       else
-        # ❌ NÃO salvar no banco quando a Witetec recusar
         msg = response["error"] || response["message"] || "Erro ao solicitar saque."
 
-        @withdrawal.status = "FAILED" # só para exibir no form, não será salvo
+        @withdrawal.status = "FAILED"
         @withdrawal.errors.add(:base, msg)
 
         flash.now[:alert] = "Erro ao solicitar saque: #{msg}"

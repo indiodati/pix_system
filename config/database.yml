@@ -79,7 +79,4 @@ test:
 #
 production:
   <<: *default
-  database: <%= ENV.fetch("POSTGRES_DB", "pix_system_production") %>
-  username: <%= ENV.fetch("POSTGRES_USER", "marlloncastro") %>
-  password: <%= ENV.fetch("POSTGRES_PASSWORD") %>
-  host: <%= ENV.fetch("POSTGRES_HOST", "db") %>
+  database: pix_system_production
