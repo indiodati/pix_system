@@ -1,3 +1,4 @@
+# app/controllers/pix_transactions_controller.rb
 class PixTransactionsController < ApplicationController
   before_action :authenticate_user!
 
@@ -38,6 +39,7 @@ class PixTransactionsController < ApplicationController
         current_user.pix_gateway rescue "witetec"
       end
 
+    # segurança extra
     gateway = "witetec" unless %w[witetec santsbank].include?(gateway)
 
     Rails.logger.info "[PIX CREATE] user_id=#{current_user.id} gateway=#{gateway}"
@@ -56,6 +58,13 @@ class PixTransactionsController < ApplicationController
 
     # mantém o valor digitado no form caso dê erro
     @pix_transaction.amount_reais = raw_amount_reais
+
+    # se valor for inválido / zero, já volta pro form
+    if amount_cents <= 0
+      @pix_transaction.errors.add(:amount_reais, "deve ser maior que zero")
+      flash.now[:alert] = "Informe um valor válido para o PIX."
+      return render :new
+    end
 
     # ------------------------------------------------------------
     # Service certo
@@ -98,6 +107,8 @@ class PixTransactionsController < ApplicationController
         )
       end
 
+    Rails.logger.info "[PIX CREATE] raw response (#{gateway}) => #{response.inspect}"
+
     # ------------------------------------------------------------
     # Resposta
     # ------------------------------------------------------------
@@ -133,9 +144,19 @@ class PixTransactionsController < ApplicationController
 
       render :show
     else
-      error_msg = response["error"] || response["message"] || response["mensagem"] || response.inspect
-      flash.now[:alert] = "Erro ao criar PIX (#{gateway}): #{error_msg}"
+      http_status = response["http_status"]
+      error_msg   = response["error"] ||
+                    response["message"] ||
+                    response["mensagem"] ||
+                    response.inspect
+
+      flash_message = "Erro ao criar PIX (#{gateway}"
+      flash_message += " - HTTP #{http_status}" if http_status.present?
+      flash_message += "): #{error_msg}"
+
+      flash.now[:alert] = flash_message
       @pix_transaction.errors.add(:base, error_msg)
+
       render :new
     end
 

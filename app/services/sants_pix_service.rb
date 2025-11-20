@@ -1,3 +1,4 @@
+# app/services/sants_pix_service.rb
 require "net/http"
 require "json"
 require "uri"
@@ -21,6 +22,15 @@ class SantsPixService
   # Autenticação
   # =========================================
   def authenticate
+    if CLIENT_ID.blank? || CLIENT_SECRET.blank?
+      msg = "CLIENT_ID/CLIENT_SECRET da Sants não configurados (ENV SANTS_PIX_CLIENT_ID / SANTS_PIX_CLIENT_SECRET)"
+      Rails.logger.error "[SantsPixService] #{msg}"
+      return {
+        "status" => false,
+        "error"  => msg
+      }
+    end
+
     uri = URI.join(@base_url, AUTH_PATH)
 
     payload = {
@@ -43,13 +53,18 @@ class SantsPixService
     body = JSON.parse(response.body) rescue {}
 
     if response.code.to_i == 200 && body["sucesso"] == true && body["accessToken"].present?
-      body["accessToken"]
+      access_token = body["accessToken"].to_s
+      Rails.logger.info "[SantsPixService] Auth OK, token recebido (tamanho=#{access_token.size})"
+      access_token
     else
       msg = body["mensagem"] || body["message"] || "Falha ao autenticar na API Sants"
+      Rails.logger.error "[SantsPixService] Auth FAIL: HTTP #{response.code} msg=#{msg} body=#{body.inspect}"
+
       {
         "status" => false,
         "error"  => msg,
-        "raw"    => body
+        "raw"    => body,
+        "http_status" => response.code.to_i
       }
     end
   rescue => e
@@ -62,7 +77,6 @@ class SantsPixService
 
   # =========================================
   # Criar transação PIX (QRCode)
-  # =========================================
   # attrs:
   #   :amount             (em centavos)
   #   :expiration_seconds
@@ -77,8 +91,16 @@ class SantsPixService
       return { "status" => false, "error" => "O valor tem que ser maior que zero" }
     end
 
+    # ==============================
+    # 1) Autenticação
+    # ==============================
     access_token = authenticate
-    return access_token if access_token.is_a?(Hash) # erro de auth
+
+    if access_token.is_a?(Hash)
+      # Já vem no formato { "status" => false, "error" => "...", ... }
+      Rails.logger.error "[SantsPixService] Abortando create_transaction por erro de auth: #{access_token.inspect}"
+      return access_token
+    end
 
     valor = amount_cents.to_i
 
@@ -107,7 +129,32 @@ class SantsPixService
 
     body = JSON.parse(response.body) rescue {}
 
-    if response.code.to_i == 200 && body["sucesso"] == true
+    http_code = response.code.to_i
+
+    # ==============================
+    # 2) Tratamento explícito 401/403
+    # ==============================
+    if [401, 403].include?(http_code)
+      msg = body["mensagem"] ||
+            body["message"]  ||
+            body.dig("erro", "motivo") ||
+            body.dig("erro", "mensagem") ||
+            "Acesso não autorizado/forbidden na API Sants (HTTP #{http_code})"
+
+      Rails.logger.error "[SantsPixService] HTTP #{http_code} ao gerar QRCode: #{msg} - body=#{body.inspect}"
+
+      return {
+        "status"      => false,
+        "error"       => msg,
+        "raw"         => body,
+        "http_status" => http_code
+      }
+    end
+
+    # ==============================
+    # 3) Sucesso "normal"
+    # ==============================
+    if http_code == 200 && body["sucesso"] == true
       # Sants pode mandar "txId" ou "txid" dependendo do endpoint
       tx_id  = body["txId"] || body["txid"]
       qrcode = body["qrcode"] || {}
@@ -120,7 +167,7 @@ class SantsPixService
         "status"  => true,
         "message" => body["mensagem"],
         "data"    => {
-          "id"        => tx_id,           # 👈 é isso que vira gateway_id na PixTransaction
+          "id"        => tx_id,           # vira gateway_id na PixTransaction
           "amount"    => amount_cents,    # interno sempre em centavos
           "feeAmount" => 0,
           "status"    => "PENDING",
@@ -131,11 +178,19 @@ class SantsPixService
         }
       }
     else
-      msg = body["mensagem"] || body["message"] || "Erro ao criar QRCode Sants"
+      msg = body["mensagem"] ||
+            body["message"]  ||
+            body.dig("erro", "motivo") ||
+            body.dig("erro", "mensagem") ||
+            "Erro ao criar QRCode Sants"
+
+      Rails.logger.error "[SantsPixService] Falha ao criar QRCode: HTTP #{http_code} msg=#{msg} body=#{body.inspect}"
+
       {
-        "status" => false,
-        "error"  => msg,
-        "raw"    => body
+        "status"      => false,
+        "error"       => msg,
+        "raw"         => body,
+        "http_status" => http_code
       }
     end
   rescue => e
