@@ -3,19 +3,7 @@
               local: true,
               class: "contents" do |form| %>
 
-  <% if pix_transaction.errors.any? %>
-    <div id="error_explanation"
-         class="bg-red-50 text-red-500 px-3 py-2 font-medium rounded-md mt-3 rounded-md">
-      <h2><%= pluralize(pix_transaction.errors.count, "erro") %> impediram o PIX de ser criado:</h2>
-
-      <ul class="list-disc ml-6 mt-2">
-        <% pix_transaction.errors.each do |error| %>
-          <li><%= error.full_message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
-
+ 
   <!-- Valor em reais -->
   <div class="my-5">
     <%= form.label :amount_reais, "Valor do PIX", class: "block text-sm font-medium text-gray-700" %>
