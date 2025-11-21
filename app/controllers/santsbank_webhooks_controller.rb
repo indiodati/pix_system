@@ -110,10 +110,10 @@ class SantsbankWebhooksController < ApplicationController
     codigo_transacao = payload["codigoTransacao"].to_s
     id_envio         = payload["idEnvio"].to_s
     end_to_end       = payload["endToEndId"].to_s
-    valor            = payload["valor"]              # na Sants vem -500 para R$ 5,00
+    valor            = payload["valor"]              # normalmente negativo (-1 * valor)
     erro             = payload["erro"]
 
-    # valor em centavos, absoluto (pra exibir bonito nos logs)
+    # valor em centavos
     valor_cents = begin
       valor.to_i
     rescue
@@ -205,11 +205,61 @@ class SantsbankWebhooksController < ApplicationController
   # PIX IN
   # ================================
   def handle_pix_in(payload)
-    Rails.logger.info "[SANTS WEBHOOK] PixIn recebido payload=#{payload.inspect}"
-    # Aqui depois você pode:
-    # - localizar conta do recebedor
-    # - creditar saldo
-    # - registrar PixTransaction etc.
+    end_to_end       = payload["endToEndId"].to_s
+    txid             = payload["txid"].to_s
+    valor            = payload["valor"]
+    conta_recebedor  = payload.dig("recebedor", "conta_recebedor").to_s
+
+    valor_cents = begin
+      valor.to_i
+    rescue
+      0
+    end
+
+    valor_reais = (valor_cents / 100.0).round(2)
+
+    Rails.logger.info(
+      "[SANTS WEBHOOK] PixIn txid=#{txid} endToEndId=#{end_to_end} " \
+      "conta_recebedor=#{conta_recebedor} valor=#{valor_cents} (R$ #{'%.2f' % valor_reais})"
+    )
+
+    # Tenta localizar a transação PIX criada no sistema
+    pix_tx =
+      PixTransaction.find_by(gateway_id: txid) ||
+      PixTransaction.find_by(gateway_id: end_to_end)
+
+    unless pix_tx
+      Rails.logger.warn(
+        "[SANTS WEBHOOK] PixIn: PixTransaction não encontrada para txid=#{txid} / endToEndId=#{end_to_end}"
+      )
+      return
+    end
+
+    user        = pix_tx.user
+    prev_status = pix_tx.status.to_s.upcase
+
+    PixTransaction.transaction do
+      pix_tx.update_columns(
+        status:     "COMPLETED",
+        updated_at: Time.current
+      )
+
+      # COMPLETED pela primeira vez → credita saldo
+      if prev_status != "COMPLETED"
+        begin
+          user.credit!(valor_cents)
+          Rails.logger.info(
+            "[SANTS WEBHOOK] PixIn crédito: user_id=#{user.id} +#{valor_cents} cents " \
+            "(pix_transaction_id=#{pix_tx.id})"
+          )
+        rescue => e
+          Rails.logger.error(
+            "[SANTS WEBHOOK] ERRO ao creditar saldo PixIn (pix_transaction_id=#{pix_tx.id}): " \
+            "#{e.class} - #{e.message}"
+          )
+        end
+      end
+    end
   rescue => e
     Rails.logger.error "[SANTS WEBHOOK] ERRO handle_pix_in: #{e.class} - #{e.message}"
   end
