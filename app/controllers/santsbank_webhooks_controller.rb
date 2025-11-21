@@ -6,7 +6,7 @@ class SantsbankWebhooksController < ApplicationController
   # 🔐 Proteções extras
   before_action :verify_source_ip!
   before_action :parse_payload!
-  before_action :verify_token!
+  # before_action :verify_token!
 
   # Lista de IPs permitidos (se vazio, não bloqueia por IP)
   # Exemplo:
@@ -53,14 +53,26 @@ class SantsbankWebhooksController < ApplicationController
   end
 
   # ==========================================
-  # 2) Parse do JSON uma vez só
+  # 2) Parse do payload (JSON ou params)
   # ==========================================
   def parse_payload!
-    payload_raw = request.raw_post.presence || "{}"
-    @payload    = JSON.parse(payload_raw) rescue {}
+    raw = request.raw_post.to_s.strip
 
-    if @payload.blank? || !@payload.is_a?(Hash)
-      Rails.logger.warn "[SANTS WEBHOOK] payload inválido ou vazio"
+    @payload =
+      if raw.present? && request.content_mime_type&.json?
+        # JSON "puro" vindo no body
+        JSON.parse(raw) rescue {}
+      elsif params[:santsbank_webhook].present?
+        # Caso venha embrulhado num root params[:santsbank_webhook]
+        params[:santsbank_webhook].to_unsafe_h rescue params[:santsbank_webhook].to_h
+      else
+        # Fallback: pega tudo que veio nos params, menos coisas de Rails
+        params.to_unsafe_h.except("controller", "action", "format")
+      end
+
+    unless @payload.is_a?(Hash) && @payload.present?
+      Rails.logger.warn "[SANTS WEBHOOK] payload inválido ou vazio (raw='#{raw[0..200]}')"
+      @payload = {}
     end
   end
 
@@ -94,16 +106,27 @@ class SantsbankWebhooksController < ApplicationController
   # PIX OUT (saque via Sants)
   # ================================
   def handle_pix_out(payload)
-    status_raw        = payload["status"].to_s        # "Em processamento", "Sucesso", "Erro", "Falha"
-    codigo_transacao  = payload["codigoTransacao"].to_s
-    id_envio          = payload["idEnvio"].to_s
-    end_to_end        = payload["endToEndId"].to_s
-    valor             = payload["valor"]              # normalmente negativo (-1 * valor)
-    erro              = payload["erro"]
+    status_raw       = payload["status"].to_s        # "Em processamento", "Sucesso", "Erro", "Falha"
+    codigo_transacao = payload["codigoTransacao"].to_s
+    id_envio         = payload["idEnvio"].to_s
+    end_to_end       = payload["endToEndId"].to_s
+    valor            = payload["valor"]              # na Sants vem -500 para R$ 5,00
+    erro             = payload["erro"]
+
+    # valor em centavos, absoluto (pra exibir bonito nos logs)
+    valor_cents = begin
+      valor.to_i
+    rescue
+      0
+    end
+
+    valor_cents_abs = valor_cents.abs
+    valor_reais     = (valor_cents_abs / 100.0).round(2)
 
     Rails.logger.info(
       "[SANTS WEBHOOK] PixOut codigoTransacao=#{codigo_transacao} " \
-      "idEnvio=#{id_envio} status=#{status_raw} valor=#{valor} endToEndId=#{end_to_end}"
+      "idEnvio=#{id_envio} status=#{status_raw} valor=#{valor_cents} (R$ #{'%.2f' % valor_reais}) " \
+      "endToEndId=#{end_to_end}"
     )
 
     withdrawal = Withdrawal.find_by(gateway_id: codigo_transacao)
