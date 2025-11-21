@@ -210,6 +210,7 @@ class SantsbankWebhooksController < ApplicationController
     valor            = payload["valor"]
     conta_recebedor  = payload.dig("recebedor", "conta_recebedor").to_s
 
+    # valor enviado no webhook (em centavos)
     valor_cents = begin
       valor.to_i
     rescue
@@ -238,18 +239,53 @@ class SantsbankWebhooksController < ApplicationController
     user        = pix_tx.user
     prev_status = pix_tx.status.to_s.upcase
 
+    # ---------------------------------------------------------
+    # Cálculo de valores: BRUTO, TAXA e LÍQUIDO
+    # ---------------------------------------------------------
+
+    # Bruto: prioriza o valor vindo do webhook, senão cai no amount salvo
+    gross_cents = if valor_cents.positive?
+                    valor_cents
+                  else
+                    pix_tx.amount.to_i
+                  end
+
+    # Taxa: usa o fee_amount já salvo na PixTransaction
+    fee_cents = pix_tx.fee_amount.to_i
+
+    # Se por algum motivo fee_amount ficou 0 mas o user tem taxa, recalcula
+    if fee_cents.zero? && user.pix_fee_percent.to_f.positive? && gross_cents.positive?
+      fee_cents = ((gross_cents * user.pix_fee_percent.to_f) / 100.0).round
+      Rails.logger.warn(
+        "[SANTS WEBHOOK] PixIn: fee_amount estava 0, recalculando pela pix_fee_percent=#{user.pix_fee_percent} " \
+        "→ fee_cents=#{fee_cents}"
+      )
+    end
+
+    # Garantia de não creditar valor negativo
+    net_cents = gross_cents - fee_cents
+    net_cents = 0 if net_cents.negative?
+
+    Rails.logger.info(
+      "[SANTS WEBHOOK] PixIn valores calculados: gross=#{gross_cents} fee=#{fee_cents} net=#{net_cents} (cents) " \
+      "user_id=#{user.id} pix_transaction_id=#{pix_tx.id}"
+    )
+
     PixTransaction.transaction do
+      # Atualiza a transação como COMPLETED e garante amount/fee_amount coerentes
       pix_tx.update_columns(
         status:     "COMPLETED",
+        amount:     gross_cents,
+        fee_amount: fee_cents,
         updated_at: Time.current
       )
 
-      # COMPLETED pela primeira vez → credita saldo
+      # COMPLETED pela primeira vez → credita saldo líquido
       if prev_status != "COMPLETED"
         begin
-          user.credit!(valor_cents)
+          user.credit!(net_cents)
           Rails.logger.info(
-            "[SANTS WEBHOOK] PixIn crédito: user_id=#{user.id} +#{valor_cents} cents " \
+            "[SANTS WEBHOOK] PixIn crédito (líquido): user_id=#{user.id} +#{net_cents} cents " \
             "(pix_transaction_id=#{pix_tx.id})"
           )
         rescue => e
