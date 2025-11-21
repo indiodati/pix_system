@@ -7,11 +7,13 @@ class SantsPixService
   BASE_URL      = ENV["SANTS_PIX_API_BASE_URL"] || "https://api.pix.santsbank.com.br"
   CLIENT_ID     = ENV["SANTS_PIX_CLIENT_ID"]
   CLIENT_SECRET = ENV["SANTS_PIX_CLIENT_SECRET"]
+  SANTS_TOKEN   = ENV["SANTS_TOKEN"]
 
   AUTH_PATH     = ENV["SANTS_PIX_AUTH_PATH"]   || "/no-auth/autenticacao/v1/api/login"
   QRCODE_PATH   = ENV["SANTS_PIX_QRCODE_PATH"] || "/qrcode/v2/gerar"
   DEFAULT_EXP   = (ENV["SANTS_PIX_DEFAULT_EXPIRATION"] || 600).to_i
 
+  # Token usado apenas pra validar o WEBHOOK (campo "token" no payload)
   WEBHOOK_TOKEN = ENV["SANTS_WEBHOOK_TOKEN"]
 
   def initialize
@@ -42,7 +44,15 @@ class SantsPixService
 
     request = Net::HTTP::Post.new(uri)
     request["Content-Type"] = "application/json"
-    request.body            = payload.to_json
+
+    # Header Token com o valor do SANTS_TOKEN
+    if SANTS_TOKEN.present?
+      request["Token"] = SANTS_TOKEN
+    else
+      Rails.logger.warn "[SantsPixService] SANTS_TOKEN vazio; Auth sem header Token"
+    end
+
+    request.body = payload.to_json
 
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == "https") do |http|
       http.request(request)
@@ -51,6 +61,7 @@ class SantsPixService
     Rails.logger.info "[SantsPixService] Auth response #{response.code} - body: #{response.body}"
 
     body = JSON.parse(response.body) rescue {}
+    Rails.logger.info "[SantsPixService] Auth parsed body: #{body.inspect}"
 
     if response.code.to_i == 200 && body["sucesso"] == true && body["accessToken"].present?
       access_token = body["accessToken"].to_s
@@ -61,9 +72,9 @@ class SantsPixService
       Rails.logger.error "[SantsPixService] Auth FAIL: HTTP #{response.code} msg=#{msg} body=#{body.inspect}"
 
       {
-        "status" => false,
-        "error"  => msg,
-        "raw"    => body,
+        "status"      => false,
+        "error"       => msg,
+        "raw"         => body,
         "http_status" => response.code.to_i
       }
     end
@@ -94,14 +105,17 @@ class SantsPixService
     # ==============================
     # 1) Autenticação
     # ==============================
-    access_token = authenticate
+    access_token_result = authenticate
 
-    if access_token.is_a?(Hash)
-      # Já vem no formato { "status" => false, "error" => "...", ... }
-      Rails.logger.error "[SantsPixService] Abortando create_transaction por erro de auth: #{access_token.inspect}"
-      return access_token
+    if access_token_result.is_a?(Hash)
+      Rails.logger.error "[SantsPixService] Abortando create_transaction por erro de auth: #{access_token_result.inspect}"
+      return access_token_result
     end
 
+    access_token = access_token_result.to_s
+    Rails.logger.info "[SantsPixService] Usando access_token (len=#{access_token.size})"
+
+    # Sants: valor em centavos ("valor": 500)
     valor = amount_cents.to_i
 
     payload = {
@@ -113,13 +127,14 @@ class SantsPixService
 
     uri = URI.join(@base_url, QRCODE_PATH)
     Rails.logger.info "[SantsPixService] Request POST #{uri} - body: #{payload.inspect}"
+    Rails.logger.info "[SantsPixService] Request headers: Authorization='Bearer *****', Token='*****'"
 
     request = Net::HTTP::Post.new(uri)
-    request["Accept"]        = "application/json"
     request["Content-Type"]  = "application/json"
     request["Authorization"] = "Bearer #{access_token}"
-    request["Token"]         = WEBHOOK_TOKEN if WEBHOOK_TOKEN.present?
-    request.body             = payload.to_json
+    request["Token"]         = SANTS_TOKEN if SANTS_TOKEN.present?
+
+    request.body = payload.to_json
 
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == "https") do |http|
       http.request(request)
@@ -127,8 +142,7 @@ class SantsPixService
 
     Rails.logger.info "[SantsPixService] Response #{response.code} #{uri} - body: #{response.body}"
 
-    body = JSON.parse(response.body) rescue {}
-
+    body      = JSON.parse(response.body) rescue {}
     http_code = response.code.to_i
 
     # ==============================
@@ -155,7 +169,6 @@ class SantsPixService
     # 3) Sucesso "normal"
     # ==============================
     if http_code == 200 && body["sucesso"] == true
-      # Sants pode mandar "txId" ou "txid" dependendo do endpoint
       tx_id  = body["txId"] || body["txid"]
       qrcode = body["qrcode"] || {}
 
@@ -167,13 +180,13 @@ class SantsPixService
         "status"  => true,
         "message" => body["mensagem"],
         "data"    => {
-          "id"        => tx_id,           # vira gateway_id na PixTransaction
-          "amount"    => amount_cents,    # interno sempre em centavos
+          "id"        => tx_id,
+          "amount"    => amount_cents,
           "feeAmount" => 0,
           "status"    => "PENDING",
           "pix"       => {
-            "qrcode"    => qrcode["imagem"], # base64 da imagem
-            "copyPaste" => qrcode["emv"]     # EMV copia e cola
+            "qrcode"    => qrcode["imagem"],
+            "copyPaste" => qrcode["emv"]
           }
         }
       }
